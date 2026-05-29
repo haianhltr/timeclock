@@ -11,26 +11,32 @@ import { TrendChart } from "./charts/TrendChart";
 import { WeekdayChart } from "./charts/WeekdayChart";
 
 export function Insights({ target }: { target: number }) {
-  const { data: entries } = useEntries();
-  if (!entries) return null;
-  const m = computeMetrics(entries, target);
-  if (m.withDur.length === 0) return null;
+  const { data: entries, isLoading } = useEntries();
+  if (isLoading) return null;
+  const m = computeMetrics(entries ?? [], target);
+  if (m.withDur.length === 0) {
+    return (
+      <div
+        style={{
+          padding: "44px 28px",
+          background: "var(--surface)",
+          borderRadius: "var(--radius)",
+          boxShadow: "var(--shadow-sm)",
+          border: "1px dashed var(--line)",
+          color: "var(--muted)",
+          textAlign: "center",
+          fontSize: 14,
+          animation: "fadeIn .35s ease both",
+        }}
+      >
+        No check-ins yet. The dashboard fills in once you log one.
+      </div>
+    );
+  }
 
   return (
-    <section
-      style={{ marginTop: 32, animation: "fadeUp .45s ease both" }}
-    >
+    <section style={{ animation: "fadeUp .45s ease both" }}>
       <div style={{ marginBottom: 14 }}>
-        <h2
-          style={{
-            margin: "0 0 4px",
-            fontSize: 20,
-            fontWeight: 800,
-            letterSpacing: "-.02em",
-          }}
-        >
-          Your patterns
-        </h2>
         <p style={{ margin: 0, color: "var(--ink-2)", fontSize: 13 }}>
           {m.withDur.length} check-ins · {m.lateCount} late{" "}
           {m.lateCount === 1 ? "morning" : "mornings"}
@@ -110,7 +116,7 @@ export function Insights({ target }: { target: number }) {
           <ReasonsChart reasons={m.reasons} />
         </Card>
         <Card title="Monthly view" sub="Each day coloured by arrival">
-          <CalendarHeatmap entries={entries} target={m.target} />
+          <CalendarHeatmap entries={entries ?? []} target={m.target} />
         </Card>
       </div>
     </section>
