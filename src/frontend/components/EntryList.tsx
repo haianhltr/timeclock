@@ -9,10 +9,12 @@ const MO = [
   "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ];
 
-// 8:05 — same hardcoded default as EntryForm; both will read from tweaks later.
-const TARGET = 485;
+type Props = {
+  canEdit?: boolean;
+  target: number;
+};
 
-export function EntryList({ canEdit = false }: { canEdit?: boolean }) {
+export function EntryList({ canEdit = false, target }: Props) {
   const { data: entries, isLoading, error } = useEntries();
   const del = useDeleteEntry();
 
@@ -60,7 +62,7 @@ export function EntryList({ canEdit = false }: { canEdit?: boolean }) {
       {rows.map((e) => {
         const d = new Date(e.date + "T00:00:00");
         const isNote = e.type === "NOTE";
-        const late = !isNote && e.desk != null && e.desk > TARGET;
+        const late = !isNote && e.desk != null && e.desk > target;
         return (
           <div
             key={e.date}

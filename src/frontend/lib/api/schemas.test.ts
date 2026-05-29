@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { createEntrySchema, updateEntrySchema } from "./schemas";
+import {
+  configUpdateSchema,
+  createEntrySchema,
+  updateEntrySchema,
+} from "./schemas";
 
 describe("createEntrySchema", () => {
   it("accepts a minimal TIMED entry", () => {
@@ -80,6 +84,37 @@ describe("updateEntrySchema", () => {
   it("rejects unknown fields (strict)", () => {
     expect(() =>
       updateEntrySchema.parse({ type: "TIMED" } as unknown as object)
+    ).toThrow();
+  });
+});
+
+describe("configUpdateSchema", () => {
+  it("accepts an empty patch", () => {
+    expect(configUpdateSchema.parse({})).toEqual({});
+  });
+
+  it("accepts all fields", () => {
+    expect(
+      configUpdateSchema.parse({
+        targetMin: 500,
+        boss: "Sam",
+        accentHex: "#3f9d6e",
+      })
+    ).toEqual({ targetMin: 500, boss: "Sam", accentHex: "#3f9d6e" });
+  });
+
+  it("rejects malformed hex", () => {
+    expect(() => configUpdateSchema.parse({ accentHex: "red" })).toThrow();
+    expect(() => configUpdateSchema.parse({ accentHex: "#abc" })).toThrow();
+  });
+
+  it("rejects empty boss string", () => {
+    expect(() => configUpdateSchema.parse({ boss: "" })).toThrow();
+  });
+
+  it("rejects unknown fields (strict)", () => {
+    expect(() =>
+      configUpdateSchema.parse({ accent: "#000000" } as unknown as object)
     ).toThrow();
   });
 });
