@@ -10,10 +10,15 @@ import { ReasonsChart } from "./charts/ReasonsChart";
 import { TrendChart } from "./charts/TrendChart";
 import { WeekdayChart } from "./charts/WeekdayChart";
 
-export function Insights({ target }: { target: number }) {
+type Props = {
+  targetDesk: number;
+  targetGate: number;
+};
+
+export function Insights({ targetDesk, targetGate }: Props) {
   const { data: entries, isLoading } = useEntries();
   if (isLoading) return null;
-  const m = computeMetrics(entries ?? [], target);
+  const m = computeMetrics(entries ?? [], targetDesk);
   if (m.withDur.length === 0) {
     return (
       <div
@@ -72,8 +77,8 @@ export function Insights({ target }: { target: number }) {
       </Card>
 
       {/* Trend (wide) */}
-      <Card title="Arrival trend" sub={`When you reached your desk, last ${Math.min(30, m.withDur.length)} days`}>
-        <TrendChart data={m.withDur} target={m.target} />
+      <Card title="Arrival trend" sub={`When you arrived, last ${Math.min(30, m.withDur.length)} days`}>
+        <TrendChart data={m.withDur} targetDesk={targetDesk} targetGate={targetGate} />
       </Card>
 
       {/* 2-col responsive grid */}
@@ -116,7 +121,7 @@ export function Insights({ target }: { target: number }) {
           <ReasonsChart reasons={m.reasons} />
         </Card>
         <Card title="Monthly view" sub="Each day coloured by arrival">
-          <CalendarHeatmap entries={entries ?? []} target={m.target} />
+          <CalendarHeatmap entries={entries ?? []} targetDesk={targetDesk} targetGate={targetGate} />
         </Card>
       </div>
     </section>

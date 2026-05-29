@@ -5,7 +5,8 @@
 export type EntryType = "TIMED" | "NOTE";
 
 export type SerializedConfig = {
-  targetMin: number;
+  targetDesk: number;
+  targetGate: number;
   boss: string;
   accentHex: string;
   updatedAt: string;

@@ -96,11 +96,17 @@ describe("configUpdateSchema", () => {
   it("accepts all fields", () => {
     expect(
       configUpdateSchema.parse({
-        targetMin: 500,
+        targetDesk: 500,
+        targetGate: 490,
         boss: "Sam",
         accentHex: "#3f9d6e",
       })
-    ).toEqual({ targetMin: 500, boss: "Sam", accentHex: "#3f9d6e" });
+    ).toEqual({
+      targetDesk: 500,
+      targetGate: 490,
+      boss: "Sam",
+      accentHex: "#3f9d6e",
+    });
   });
 
   it("rejects malformed hex", () => {
@@ -115,6 +121,9 @@ describe("configUpdateSchema", () => {
   it("rejects unknown fields (strict)", () => {
     expect(() =>
       configUpdateSchema.parse({ accent: "#000000" } as unknown as object)
+    ).toThrow();
+    expect(() =>
+      configUpdateSchema.parse({ targetMin: 480 } as unknown as object)
     ).toThrow();
   });
 });

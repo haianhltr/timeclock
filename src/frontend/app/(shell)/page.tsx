@@ -20,7 +20,7 @@ export default async function InsightsPage() {
       <p style={{ margin: "0 0 20px", color: "var(--ink-2)", fontSize: 14 }}>
         Public read · admin write
       </p>
-      <Insights target={config.targetMin} />
+      <Insights targetDesk={config.targetDesk} targetGate={config.targetGate} />
     </div>
   );
 }

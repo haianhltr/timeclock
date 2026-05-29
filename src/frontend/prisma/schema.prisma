@@ -83,11 +83,12 @@ model AllowedEmail {
 // used in the check-in message.
 
 model Config {
-  id        Int      @id @default(1)
-  targetMin Int      @default(485)
-  boss      String   @default("Scott")
-  accentHex String   @default("#e8744e")
-  updatedAt DateTime @updatedAt
+  id         Int      @id @default(1)
+  targetDesk Int      @default(485) // "on-time" at desk (default 8:05)
+  targetGate Int      @default(480) // "on-time" at gate (default 8:00)
+  boss       String   @default("Scott")
+  accentHex  String   @default("#e8744e")
+  updatedAt  DateTime @updatedAt
 }
 
 // ---------- Time-tracking entries ----------

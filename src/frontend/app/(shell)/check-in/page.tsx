@@ -13,7 +13,5 @@ export default async function Page() {
     redirect("/login");
   }
   const config = await getConfig();
-  return (
-    <CheckInPage today={todayIso()} config={serializeConfig(config)} />
-  );
+  return <CheckInPage today={todayIso()} config={serializeConfig(config)} />;
 }

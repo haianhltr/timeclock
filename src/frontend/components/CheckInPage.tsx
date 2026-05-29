@@ -16,7 +16,7 @@ export function CheckInPage({ today, config }: Props) {
     <EntryForm
       today={today}
       existing={existing}
-      target={config.targetMin}
+      target={config.targetDesk}
       boss={config.boss}
     />
   );
