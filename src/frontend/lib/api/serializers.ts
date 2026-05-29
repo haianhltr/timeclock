@@ -2,7 +2,8 @@ import type { Config, Entry } from "@prisma/client";
 
 export function serializeConfig(c: Config) {
   return {
-    targetMin: c.targetMin,
+    targetDesk: c.targetDesk,
+    targetGate: c.targetGate,
     boss: c.boss,
     accentHex: c.accentHex,
     updatedAt: c.updatedAt.toISOString(),

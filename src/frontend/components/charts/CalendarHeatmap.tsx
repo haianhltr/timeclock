@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { fmt } from "@/lib/dates";
 import type { SerializedEntry } from "@/lib/api/types";
+import { MetricToggle, type Metric } from "./MetricToggle";
 
 const MO_FULL = [
   "January", "February", "March", "April", "May", "June",
@@ -13,12 +14,15 @@ type CellTone = "good" | "accent" | "late" | "note";
 
 function entryTone(
   e: SerializedEntry | undefined,
-  target: number
+  target: number,
+  metric: Metric
 ): CellTone | null {
   if (!e) return null;
-  if (e.type === "NOTE" || e.desk == null) return "note";
-  if (e.desk <= target - 5) return "good";
-  if (e.desk <= target) return "accent";
+  if (e.type === "NOTE") return "note";
+  const v = metric === "gate" ? e.gate : e.desk;
+  if (v == null) return "note";
+  if (v <= target - 5) return "good";
+  if (v <= target) return "accent";
   return "late";
 }
 
@@ -31,10 +35,14 @@ const TONE_BG: Record<CellTone, string> = {
 
 type Props = {
   entries: SerializedEntry[];
-  target: number;
+  targetDesk: number;
+  targetGate: number;
 };
 
-export function CalendarHeatmap({ entries, target }: Props) {
+export function CalendarHeatmap({ entries, targetDesk, targetGate }: Props) {
+  const [metric, setMetric] = useState<Metric>("gate");
+  const target = metric === "gate" ? targetGate : targetDesk;
+
   const byDate = useMemo(
     () => Object.fromEntries(entries.map((e) => [e.date, e])),
     [entries]
@@ -66,6 +74,9 @@ export function CalendarHeatmap({ entries, target }: Props) {
 
   return (
     <div>
+      <div style={{ marginBottom: 12 }}>
+        <MetricToggle value={metric} onChange={setMetric} />
+      </div>
       <div
         style={{
           display: "flex",
@@ -130,15 +141,19 @@ export function CalendarHeatmap({ entries, target }: Props) {
         {cells.map((iso, i) => {
           if (!iso) return <div key={`pad-${i}`} />;
           const e = byDate[iso];
-          const tone = entryTone(e, target);
+          const tone = entryTone(e, target, metric);
           const isFilled = tone === "good" || tone === "accent" || tone === "late";
           const isNote = tone === "note";
           const dnum = Number(iso.slice(-2));
 
           let title: string = iso;
           if (e) {
-            if (e.type === "NOTE") title = `${iso} · ${e.note ?? "note"}`;
-            else if (e.desk != null) title = `${iso} · desk ${fmt(e.desk)}`;
+            if (e.type === "NOTE") {
+              title = `${iso} · ${e.note ?? "note"}`;
+            } else {
+              const v = metric === "gate" ? e.gate : e.desk;
+              if (v != null) title = `${iso} · ${metric} ${fmt(v)}`;
+            }
           }
 
           return (

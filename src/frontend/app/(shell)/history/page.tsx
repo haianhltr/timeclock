@@ -8,5 +8,5 @@ export default async function Page() {
   const session = await auth();
   const isAdmin = session?.user?.role === "ADMIN";
   const config = await getConfig();
-  return <HistoryView canEdit={isAdmin} target={config.targetMin} />;
+  return <HistoryView canEdit={isAdmin} target={config.targetDesk} />;
 }

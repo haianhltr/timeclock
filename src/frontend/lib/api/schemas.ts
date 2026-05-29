@@ -56,7 +56,8 @@ const hexColor = z
 
 export const configUpdateSchema = z
   .object({
-    targetMin: minute.optional(),
+    targetDesk: minute.optional(),
+    targetGate: minute.optional(),
     boss: z.string().min(1).max(40).optional(),
     accentHex: hexColor.optional(),
   })

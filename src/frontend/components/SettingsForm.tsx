@@ -18,15 +18,20 @@ const ACCENTS = [
 export function SettingsForm({ initial }: { initial: SerializedConfig }) {
   const router = useRouter();
   const update = useUpdateConfig();
-  const [target, setTarget] = useState<string>(fmt2(initial.targetMin));
+  const [targetDesk, setTargetDesk] = useState<string>(fmt2(initial.targetDesk));
+  const [targetGate, setTargetGate] = useState<string>(fmt2(initial.targetGate));
   const [boss, setBoss] = useState(initial.boss);
   const [accent, setAccent] = useState(initial.accentHex);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const targetMin = toMin(target);
+  const targetDeskMin = toMin(targetDesk);
+  const targetGateMin = toMin(targetGate);
   const canSave =
-    targetMin != null && boss.trim().length > 0 && !update.isPending;
+    targetDeskMin != null &&
+    targetGateMin != null &&
+    boss.trim().length > 0 &&
+    !update.isPending;
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -34,7 +39,8 @@ export function SettingsForm({ initial }: { initial: SerializedConfig }) {
     setError(null);
     try {
       await update.mutateAsync({
-        targetMin: targetMin!,
+        targetDesk: targetDeskMin!,
+        targetGate: targetGateMin!,
         boss: boss.trim(),
         accentHex: accent,
       });
@@ -81,11 +87,26 @@ export function SettingsForm({ initial }: { initial: SerializedConfig }) {
           gap: 20,
         }}
       >
-        <Field label="On-time target" sub={`Currently ${fmt(initial.targetMin)}`}>
+        <Field
+          label="On-time target — gate"
+          sub={`Currently ${fmt(initial.targetGate)} · badge-in time`}
+        >
           <input
             type="time"
-            value={target}
-            onChange={(e) => setTarget(e.target.value)}
+            value={targetGate}
+            onChange={(e) => setTargetGate(e.target.value)}
+            style={inputStyle}
+          />
+        </Field>
+
+        <Field
+          label="On-time target — desk"
+          sub={`Currently ${fmt(initial.targetDesk)} · seated time`}
+        >
+          <input
+            type="time"
+            value={targetDesk}
+            onChange={(e) => setTargetDesk(e.target.value)}
             style={inputStyle}
           />
         </Field>
