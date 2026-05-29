@@ -42,20 +42,29 @@ A 5-minute orientation. For the **shipping flow**, see [development.md](developm
 
 ## Schema overview
 
-_TBD — fill once `prisma/schema.prisma` exists._
+Source of truth: [src/frontend/prisma/schema.prisma](../src/frontend/prisma/schema.prisma).
 
-The prototype's `prototype/clockin/app/data.jsx` has the intended data shapes; port them to Prisma models.
+| Model | Purpose |
+|---|---|
+| `User`, `Account`, `Session`, `VerificationToken` | NextAuth scaffold (PrismaAdapter). `User.role` is `USER` \| `ADMIN`. |
+| `AllowedEmail` | Sign-in allowlist. Falls back to `ALLOWED_EMAILS` env var if the table is empty. |
+| `Entry` | One row per day. `type` discriminates `TIMED` (gate/desk minutes-since-midnight + optional reason/leftHome/mood) vs `NOTE` (free-text). `date` is the PK so "one entry per day" is a schema-level invariant. |
+
+Wire format: `Entry.date` serializes as `YYYY-MM-DD` (the Prisma `@db.Date` would otherwise emit a full ISO timestamp). See `lib/api/serializers.ts`.
 
 ## API surface
 
-_TBD — fill as routes land._
+Convention: every route belongs to exactly one bucket. Reads use bare `apiHandler(...)`; writes opt in with `apiHandler(..., { requireAdmin: true })`.
 
-Pattern:
-- `GET /api/health` — shallow liveness (no DB, no auth). Used by smoke.sh.
-- `GET /api/ready` — DB ping. Used by smoke.sh.
-- `GET /api/me` — current session (id, email, name, role).
-- `GET /api/<resource>` — open read.
-- `POST/PATCH/DELETE /api/<resource>[/id]` — admin write (`apiHandler(..., { requireAdmin: true })`).
+| Route | Method | Auth | Notes |
+|---|---|---|---|
+| `/api/health` | GET | open | Shallow liveness. No DB, no auth. Smoke. |
+| `/api/ready` | GET | open | DB ping. Smoke. |
+| `/api/auth/[...nextauth]` | GET/POST | open | NextAuth handlers. |
+| `/api/entries` | GET | open | Returns `{ entries: [...] }`, ordered by date ascending. |
+| `/api/entries` | POST | admin | Create. 409 if date already exists. Body: discriminated union on `type`. |
+| `/api/entries/[date]` | PATCH | admin | Partial update. 400 if you try to set TIMED-only fields on a NOTE row (or vice versa). 404 if not found. |
+| `/api/entries/[date]` | DELETE | admin | 404 if not found. |
 
 ## "Where does X live?"
 
