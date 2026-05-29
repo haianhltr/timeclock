@@ -1,15 +1,30 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/QueryProvider";
+import { getConfig } from "@/lib/api/config";
 
 export const metadata: Metadata = {
   title: "clockin",
   description: "Your morning, in two timestamps.",
 };
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+const ACCENT_RE = /^#[0-9a-fA-F]{6}$/;
+
+export default async function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  // Falling back silently keeps /login renderable if the DB is briefly down.
+  let accentHex = "#e8744e";
+  try {
+    const config = await getConfig();
+    if (ACCENT_RE.test(config.accentHex)) accentHex = config.accentHex;
+  } catch {
+    // use default
+  }
   return (
-    <html lang="en">
+    <html lang="en" style={{ ["--accent" as string]: accentHex }}>
       <body>
         <QueryProvider>{children}</QueryProvider>
       </body>

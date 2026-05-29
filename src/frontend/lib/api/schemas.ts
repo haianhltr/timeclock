@@ -47,3 +47,19 @@ export const updateEntrySchema = z
 
 export type CreateEntryInput = z.infer<typeof createEntrySchema>;
 export type UpdateEntryInput = z.infer<typeof updateEntrySchema>;
+
+// ---------- Config ----------
+
+const hexColor = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/, "Expected #rrggbb");
+
+export const configUpdateSchema = z
+  .object({
+    targetMin: minute.optional(),
+    boss: z.string().min(1).max(40).optional(),
+    accentHex: hexColor.optional(),
+  })
+  .strict();
+
+export type ConfigUpdateInput = z.infer<typeof configUpdateSchema>;

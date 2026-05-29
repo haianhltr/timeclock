@@ -5,6 +5,7 @@ import { Logo } from "./Logo";
 export async function TopBar() {
   const session = await auth();
   const user = session?.user;
+  const isAdmin = user?.role === "ADMIN";
 
   return (
     <header
@@ -34,6 +35,19 @@ export async function TopBar() {
         <Logo size={22} /> clockin
       </Link>
       {user ? (
+        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+          {isAdmin && (
+            <Link
+              href="/settings"
+              style={{
+                fontSize: 12.5,
+                fontWeight: 600,
+                color: "var(--ink-2)",
+              }}
+            >
+              Settings
+            </Link>
+          )}
         <form
           action={async () => {
             "use server";
@@ -67,6 +81,7 @@ export async function TopBar() {
             Sign out
           </button>
         </form>
+        </div>
       ) : (
         <Link
           href="/login"

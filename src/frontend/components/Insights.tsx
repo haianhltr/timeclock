@@ -2,7 +2,7 @@
 
 import { fmt } from "@/lib/dates";
 import { useEntries } from "@/lib/hooks/useEntries";
-import { computeMetrics, TARGET_DEFAULT } from "@/lib/metrics";
+import { computeMetrics } from "@/lib/metrics";
 import { CalendarHeatmap } from "./charts/CalendarHeatmap";
 import { DurationChart } from "./charts/DurationChart";
 import { OnTimeRing } from "./charts/OnTimeRing";
@@ -10,10 +10,10 @@ import { ReasonsChart } from "./charts/ReasonsChart";
 import { TrendChart } from "./charts/TrendChart";
 import { WeekdayChart } from "./charts/WeekdayChart";
 
-export function Insights() {
+export function Insights({ target }: { target: number }) {
   const { data: entries } = useEntries();
   if (!entries) return null;
-  const m = computeMetrics(entries, TARGET_DEFAULT);
+  const m = computeMetrics(entries, target);
   if (m.withDur.length === 0) return null;
 
   return (

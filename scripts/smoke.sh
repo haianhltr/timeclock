@@ -59,6 +59,9 @@ check "GET /login"           200 "$BASE/login"
 # Public read: entries list should be reachable without auth.
 check "GET /api/entries"     200 "$BASE/api/entries"
 
+# Public read: app-wide config (target/boss/accent).
+check "GET /api/config"      200 "$BASE/api/config"
+
 # Unauth WRITE → 401 JSON. Proves the admin gate.
 post_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
   -H 'Content-Type: application/json' \
@@ -79,6 +82,18 @@ if [ "$delete_status" = "401" ]; then
   pass=$((pass + 1))
 else
   printf "  ✗ %-40s expected 401, got %s\n" "DELETE /api/entries/:date (unauth)" "$delete_status"
+  fail=$((fail + 1))
+fi
+
+patch_status=$(curl -s -o /dev/null -w "%{http_code}" -X PATCH \
+  -H 'Content-Type: application/json' \
+  -d '{"boss":"smoke"}' \
+  "$BASE/api/config")
+if [ "$patch_status" = "401" ]; then
+  printf "  ✓ %-40s %s\n" "PATCH /api/config (unauth)" "$patch_status"
+  pass=$((pass + 1))
+else
+  printf "  ✗ %-40s expected 401, got %s\n" "PATCH /api/config (unauth)" "$patch_status"
   fail=$((fail + 1))
 fi
 

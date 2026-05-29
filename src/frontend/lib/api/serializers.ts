@@ -1,4 +1,13 @@
-import type { Entry } from "@prisma/client";
+import type { Config, Entry } from "@prisma/client";
+
+export function serializeConfig(c: Config) {
+  return {
+    targetMin: c.targetMin,
+    boss: c.boss,
+    accentHex: c.accentHex,
+    updatedAt: c.updatedAt.toISOString(),
+  };
+}
 
 // Prisma returns Date objects for @db.Date — JSON.stringify would emit a full
 // ISO timestamp. The client + smoke checks expect YYYY-MM-DD.

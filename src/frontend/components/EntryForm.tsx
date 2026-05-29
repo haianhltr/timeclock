@@ -13,9 +13,6 @@ const MOODS = [
   { v: 5, label: "Great", hue: "var(--good)" },
 ] as const;
 
-// 8:05 — hardcoded default, becomes admin-configurable in the tweaks PR.
-const TARGET = 485;
-
 const WD_FULL = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ];
@@ -32,9 +29,10 @@ function prettyDate(iso: string): string {
 type Props = {
   today: string;
   existing: SerializedEntry | undefined;
+  target: number;
 };
 
-export function EntryForm({ today, existing }: Props) {
+export function EntryForm({ today, existing, target }: Props) {
   const create = useCreateEntry();
   const update = useUpdateEntry();
 
@@ -97,7 +95,7 @@ export function EntryForm({ today, existing }: Props) {
   const gateMin = toMin(gate);
   const deskMin = toMin(desk);
   const dur = gateMin != null && deskMin != null ? deskMin - gateMin : null;
-  const late = deskMin != null && deskMin > TARGET;
+  const late = deskMin != null && deskMin > target;
   const cleanReason = useReason && reason.trim() ? reason.trim() : null;
 
   const submitting = create.isPending || update.isPending;
@@ -195,7 +193,7 @@ export function EntryForm({ today, existing }: Props) {
           {dur != null && <Chip tone="neutral">{dur} min gate → desk</Chip>}
           {deskMin != null &&
             (late ? (
-              <Chip tone="late">Late · target {fmt(TARGET)}</Chip>
+              <Chip tone="late">Late · target {fmt(target)}</Chip>
             ) : (
               <Chip tone="good">On time</Chip>
             ))}

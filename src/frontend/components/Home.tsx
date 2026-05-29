@@ -4,13 +4,15 @@ import { EntryForm } from "./EntryForm";
 import { EntryList } from "./EntryList";
 import { Insights } from "./Insights";
 import { useEntries } from "@/lib/hooks/useEntries";
+import type { SerializedConfig } from "@/lib/api/types";
 
 type Props = {
   isAdmin: boolean;
   today: string;
+  config: SerializedConfig;
 };
 
-export function Home({ isAdmin, today }: Props) {
+export function Home({ isAdmin, today, config }: Props) {
   const { data: entries } = useEntries();
   const existing = entries?.find((e) => e.date === today);
 
@@ -24,12 +26,12 @@ export function Home({ isAdmin, today }: Props) {
       }}
     >
       {isAdmin ? (
-        <EntryForm today={today} existing={existing} />
+        <EntryForm today={today} existing={existing} target={config.targetMin} />
       ) : (
         <PublicHeader />
       )}
 
-      <Insights />
+      <Insights target={config.targetMin} />
 
       <section style={{ marginTop: 32 }}>
         <h2
@@ -44,7 +46,7 @@ export function Home({ isAdmin, today }: Props) {
         >
           History
         </h2>
-        <EntryList canEdit={isAdmin} />
+        <EntryList canEdit={isAdmin} target={config.targetMin} />
       </section>
     </main>
   );

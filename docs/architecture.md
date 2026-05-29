@@ -49,6 +49,7 @@ Source of truth: [src/frontend/prisma/schema.prisma](../src/frontend/prisma/sche
 | `User`, `Account`, `Session`, `VerificationToken` | NextAuth scaffold (PrismaAdapter). `User.role` is `USER` \| `ADMIN`. |
 | `AllowedEmail` | Sign-in allowlist. Falls back to `ALLOWED_EMAILS` env var if the table is empty. |
 | `Entry` | One row per day. `type` discriminates `TIMED` (gate/desk minutes-since-midnight + optional reason/leftHome/mood) vs `NOTE` (free-text). `date` is the PK so "one entry per day" is a schema-level invariant. |
+| `Config` | Singleton (`id = 1`, seeded by the migration). `targetMin`, `boss`, `accentHex`. Drives the on-time math + the accent CSS variable + the check-in message. Public read, admin write. |
 
 Wire format: `Entry.date` serializes as `YYYY-MM-DD` (the Prisma `@db.Date` would otherwise emit a full ISO timestamp). See `lib/api/serializers.ts`.
 
@@ -65,6 +66,8 @@ Convention: every route belongs to exactly one bucket. Reads use bare `apiHandle
 | `/api/entries` | POST | admin | Create. 409 if date already exists. Body: discriminated union on `type`. |
 | `/api/entries/[date]` | PATCH | admin | Partial update. 400 if you try to set TIMED-only fields on a NOTE row (or vice versa). 404 if not found. |
 | `/api/entries/[date]` | DELETE | admin | 404 if not found. |
+| `/api/config` | GET | open | Returns the singleton row. |
+| `/api/config` | PATCH | admin | Partial update. Validates `accentHex` as `#rrggbb`. |
 
 ## "Where does X live?"
 
