@@ -2,6 +2,7 @@
 
 import { EntryForm } from "./EntryForm";
 import { EntryList } from "./EntryList";
+import { Insights } from "./Insights";
 import { useEntries } from "@/lib/hooks/useEntries";
 
 type Props = {
@@ -28,7 +29,9 @@ export function Home({ isAdmin, today }: Props) {
         <PublicHeader />
       )}
 
-      <section style={{ marginTop: 36 }}>
+      <Insights />
+
+      <section style={{ marginTop: 32 }}>
         <h2
           style={{
             margin: "0 0 14px",
