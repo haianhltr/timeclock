@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { fmt, fmt2, toMin } from "@/lib/dates";
+import { buildCheckInMessage } from "@/lib/checkInMessage";
 import { useCreateEntry, useUpdateEntry } from "@/lib/hooks/useEntries";
 import type { SerializedEntry } from "@/lib/api/types";
 
@@ -30,9 +31,10 @@ type Props = {
   today: string;
   existing: SerializedEntry | undefined;
   target: number;
+  boss: string;
 };
 
-export function EntryForm({ today, existing, target }: Props) {
+export function EntryForm({ today, existing, target, boss }: Props) {
   const create = useCreateEntry();
   const update = useUpdateEntry();
 
@@ -47,6 +49,7 @@ export function EntryForm({ today, existing, target }: Props) {
   const [reason, setReason] = useState(existingTimed?.reason ?? "");
   const [mood, setMood] = useState<number>(existingTimed?.mood ?? 4);
   const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Resync after refetch (e.g. just-submitted-existing entry got new updatedAt)
@@ -100,6 +103,22 @@ export function EntryForm({ today, existing, target }: Props) {
 
   const submitting = create.isPending || update.isPending;
   const canSubmit = gateMin != null && deskMin != null && !submitting;
+
+  const message = useMemo(
+    () => buildCheckInMessage({ boss, gateMin, deskMin, reason: cleanReason }),
+    [boss, gateMin, deskMin, cleanReason]
+  );
+
+  async function copyMessage() {
+    try {
+      await navigator.clipboard.writeText(message);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {
+      // Clipboard API can throw on http: or in some browsers. Silently ignore;
+      // the message text is already on screen for manual copy.
+    }
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
@@ -277,6 +296,56 @@ export function EntryForm({ today, existing, target }: Props) {
               }}
             />
           )}
+        </div>
+      </div>
+
+      {/* Live message preview — the note to the boss. */}
+      <div style={{ marginTop: 18 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: 8,
+            padding: "0 4px",
+          }}
+        >
+          <span
+            style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)" }}
+          >
+            Your check-in message
+          </span>
+          <button
+            type="button"
+            onClick={copyMessage}
+            style={{
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: copied ? "var(--good)" : "var(--accent)",
+              display: "flex",
+              alignItems: "center",
+              gap: 5,
+            }}
+          >
+            {copied ? "✓ Copied" : "Copy"}
+          </button>
+        </div>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
+          <div
+            style={{
+              maxWidth: "90%",
+              background: "var(--accent)",
+              color: "#fff",
+              padding: "13px 16px",
+              fontSize: 14,
+              lineHeight: 1.5,
+              borderRadius: "18px 18px 4px 18px",
+              boxShadow: "0 6px 18px -8px var(--accent)",
+              textWrap: "pretty",
+            }}
+          >
+            {message}
+          </div>
         </div>
       </div>
 
