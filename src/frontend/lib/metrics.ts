@@ -7,13 +7,22 @@ const WD_FULL = [
   "Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
 ] as const;
 
+export type Metric = "gate" | "desk";
+
 export type TimedEntry = SerializedEntry & {
   type: "TIMED";
   gate: number;
   desk: number;
 };
 
-export type EntryWithDur = TimedEntry & { dur: number; late: boolean };
+// `value` is whichever side of the union the active metric points at; `.late`
+// and the weekday/streak math all compare value-vs-target. dur is always
+// desk - gate regardless of the chosen metric.
+export type EntryWithDur = TimedEntry & {
+  dur: number;
+  late: boolean;
+  value: number;
+};
 
 export type WeekdayBucket = {
   day: string;
@@ -27,6 +36,7 @@ export type ReasonBucket = { reason: string; n: number };
 
 export type Metrics = {
   target: number;
+  metric: Metric;
   withDur: EntryWithDur[];
   onTimeCount: number;
   lateCount: number;
@@ -47,12 +57,14 @@ function isTimed(e: SerializedEntry): e is TimedEntry {
 
 export function computeMetrics(
   entries: SerializedEntry[],
-  target: number = TARGET_DEFAULT
+  target: number = TARGET_DEFAULT,
+  metric: Metric = "desk"
 ): Metrics {
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
-  const withDur: EntryWithDur[] = sorted
-    .filter(isTimed)
-    .map((e) => ({ ...e, dur: e.desk - e.gate, late: e.desk > target }));
+  const withDur: EntryWithDur[] = sorted.filter(isTimed).map((e) => {
+    const value = metric === "gate" ? e.gate : e.desk;
+    return { ...e, dur: e.desk - e.gate, late: value > target, value };
+  });
 
   const n = withDur.length;
   const onTimeCount = withDur.filter((e) => !e.late).length;
@@ -87,7 +99,7 @@ export function computeMetrics(
       (e) => new Date(e.date + "T00:00:00").getDay() === d
     );
     const avg = rows.length
-      ? Math.round(rows.reduce((a, e) => a + e.desk, 0) / rows.length)
+      ? Math.round(rows.reduce((a, e) => a + e.value, 0) / rows.length)
       : null;
     const lateN = rows.filter((e) => e.late).length;
     return { day: WD[d], full: WD_FULL[d], avg, lateN, n: rows.length };
@@ -103,6 +115,7 @@ export function computeMetrics(
 
   return {
     target,
+    metric,
     withDur,
     onTimeCount,
     lateCount,

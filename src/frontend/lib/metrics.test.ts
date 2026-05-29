@@ -124,4 +124,27 @@ describe("computeMetrics", () => {
     expect(m.target).toBe(TARGET_DEFAULT);
     expect(m.lateCount).toBe(1);
   });
+
+  it("compares against desk when metric is desk (default)", () => {
+    // gate=478 (early), desk=490 (late at 485). Should be late.
+    const m = computeMetrics([timed("2026-05-11", 478, 490)], 485, "desk");
+    expect(m.lateCount).toBe(1);
+    expect(m.withDur[0].value).toBe(490);
+  });
+
+  it("compares against gate when metric is gate", () => {
+    // gate=478, desk=490. Against gate target 480, gate is on-time.
+    const m = computeMetrics([timed("2026-05-11", 478, 490)], 480, "gate");
+    expect(m.onTimeCount).toBe(1);
+    expect(m.lateCount).toBe(0);
+    expect(m.withDur[0].value).toBe(478);
+  });
+
+  it("weekday averages reflect the selected metric", () => {
+    const entries = [timed("2026-05-11", 470, 490)]; // Monday
+    const deskM = computeMetrics(entries, 485, "desk");
+    const gateM = computeMetrics(entries, 480, "gate");
+    expect(deskM.byWd.find((d) => d.day === "Mon")?.avg).toBe(490);
+    expect(gateM.byWd.find((d) => d.day === "Mon")?.avg).toBe(470);
+  });
 });

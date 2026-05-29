@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { fmt } from "@/lib/dates";
 import type { SerializedEntry } from "@/lib/api/types";
-import { MetricToggle, type Metric } from "./MetricToggle";
+import type { Metric } from "@/lib/metrics";
 
 const MO_FULL = [
   "January", "February", "March", "April", "May", "June",
@@ -35,14 +35,11 @@ const TONE_BG: Record<CellTone, string> = {
 
 type Props = {
   entries: SerializedEntry[];
-  targetDesk: number;
-  targetGate: number;
+  target: number;
+  metric: Metric;
 };
 
-export function CalendarHeatmap({ entries, targetDesk, targetGate }: Props) {
-  const [metric, setMetric] = useState<Metric>("gate");
-  const target = metric === "gate" ? targetGate : targetDesk;
-
+export function CalendarHeatmap({ entries, target, metric }: Props) {
   const byDate = useMemo(
     () => Object.fromEntries(entries.map((e) => [e.date, e])),
     [entries]
@@ -74,9 +71,6 @@ export function CalendarHeatmap({ entries, targetDesk, targetGate }: Props) {
 
   return (
     <div>
-      <div style={{ marginBottom: 12 }}>
-        <MetricToggle value={metric} onChange={setMetric} />
-      </div>
       <div
         style={{
           display: "flex",
