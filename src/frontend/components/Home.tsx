@@ -26,7 +26,12 @@ export function Home({ isAdmin, today, config }: Props) {
       }}
     >
       {isAdmin ? (
-        <EntryForm today={today} existing={existing} target={config.targetMin} />
+        <EntryForm
+          today={today}
+          existing={existing}
+          target={config.targetMin}
+          boss={config.boss}
+        />
       ) : (
         <PublicHeader />
       )}
