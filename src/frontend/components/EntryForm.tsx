@@ -27,6 +27,8 @@ function prettyDate(iso: string): string {
   return `${WD_FULL[d.getDay()]}, ${MO[d.getMonth()]} ${d.getDate()}`;
 }
 
+type Mode = "TIMED" | "NOTE";
+
 type Props = {
   today: string;
   existing: SerializedEntry | undefined;
@@ -39,6 +41,12 @@ export function EntryForm({ today, existing, target, boss }: Props) {
   const update = useUpdateEntry();
 
   const existingTimed = existing?.type === "TIMED" ? existing : undefined;
+  const existingNote = existing?.type === "NOTE" ? existing : undefined;
+  const lockedToExisting = !!existing;
+
+  const [mode, setMode] = useState<Mode>(existingNote ? "NOTE" : "TIMED");
+
+  // TIMED state
   const [gate, setGate] = useState(
     existingTimed?.gate != null ? fmt2(existingTimed.gate) : "08:00"
   );
@@ -48,11 +56,16 @@ export function EntryForm({ today, existing, target, boss }: Props) {
   const [useReason, setUseReason] = useState(!!existingTimed?.reason);
   const [reason, setReason] = useState(existingTimed?.reason ?? "");
   const [mood, setMood] = useState<number>(existingTimed?.mood ?? 4);
+
+  // NOTE state
+  const [noteText, setNoteText] = useState(existingNote?.note ?? "");
+
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Resync after refetch (e.g. just-submitted-existing entry got new updatedAt)
+  // Resync after refetch (existing got new updatedAt — either just-saved or
+  // the cache invalidated).
   useEffect(() => {
     if (!existingTimed) return;
     setGate(existingTimed.gate != null ? fmt2(existingTimed.gate) : "");
@@ -62,47 +75,30 @@ export function EntryForm({ today, existing, target, boss }: Props) {
     setMood(existingTimed.mood ?? 4);
   }, [existingTimed?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // If today is already logged as a NOTE, the form is irrelevant — short-circuit.
-  if (existing?.type === "NOTE") {
-    return (
-      <div
-        style={{
-          maxWidth: 560,
-          margin: "0 auto",
-          padding: "22px 24px",
-          background: "var(--amber-soft)",
-          border: "1px dashed var(--amber)",
-          borderRadius: "var(--radius)",
-          color: "var(--ink-2)",
-          fontSize: 14,
-          lineHeight: 1.5,
-        }}
-      >
-        <div
-          style={{
-            fontSize: 12.5,
-            fontWeight: 700,
-            color: "var(--accent)",
-            letterSpacing: ".04em",
-            textTransform: "uppercase",
-            marginBottom: 6,
-          }}
-        >
-          {prettyDate(today)} · note
-        </div>
-        {existing.note}
-      </div>
-    );
-  }
+  useEffect(() => {
+    if (!existingNote) return;
+    setNoteText(existingNote.note ?? "");
+  }, [existingNote?.updatedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Lock the mode to whatever the existing entry is. Changing type requires
+  // a delete + recreate — explicit, not accidental.
+  useEffect(() => {
+    if (existingTimed) setMode("TIMED");
+    else if (existingNote) setMode("NOTE");
+  }, [existingTimed?.date, existingNote?.date]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const gateMin = toMin(gate);
   const deskMin = toMin(desk);
   const dur = gateMin != null && deskMin != null ? deskMin - gateMin : null;
   const late = deskMin != null && deskMin > target;
   const cleanReason = useReason && reason.trim() ? reason.trim() : null;
+  const cleanNote = noteText.trim();
 
   const submitting = create.isPending || update.isPending;
-  const canSubmit = gateMin != null && deskMin != null && !submitting;
+  const canSubmit =
+    mode === "TIMED"
+      ? gateMin != null && deskMin != null && !submitting
+      : cleanNote.length > 0 && !submitting;
 
   const message = useMemo(
     () => buildCheckInMessage({ boss, gateMin, deskMin, reason: cleanReason }),
@@ -115,8 +111,7 @@ export function EntryForm({ today, existing, target, boss }: Props) {
       setCopied(true);
       setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard API can throw on http: or in some browsers. Silently ignore;
-      // the message text is already on screen for manual copy.
+      // Silent: the text is on screen anyway.
     }
   }
 
@@ -125,23 +120,35 @@ export function EntryForm({ today, existing, target, boss }: Props) {
     if (!canSubmit) return;
     setError(null);
     try {
-      if (existingTimed) {
-        await update.mutateAsync({
-          date: today,
-          gate: gateMin!,
-          desk: deskMin!,
-          reason: cleanReason,
-          mood,
-        });
+      if (mode === "TIMED") {
+        if (existingTimed) {
+          await update.mutateAsync({
+            date: today,
+            gate: gateMin!,
+            desk: deskMin!,
+            reason: cleanReason,
+            mood,
+          });
+        } else {
+          await create.mutateAsync({
+            date: today,
+            type: "TIMED",
+            gate: gateMin!,
+            desk: deskMin!,
+            reason: cleanReason,
+            mood,
+          });
+        }
       } else {
-        await create.mutateAsync({
-          date: today,
-          type: "TIMED",
-          gate: gateMin!,
-          desk: deskMin!,
-          reason: cleanReason,
-          mood,
-        });
+        if (existingNote) {
+          await update.mutateAsync({ date: today, note: cleanNote });
+        } else {
+          await create.mutateAsync({
+            date: today,
+            type: "NOTE",
+            note: cleanNote,
+          });
+        }
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2400);
@@ -149,6 +156,12 @@ export function EntryForm({ today, existing, target, boss }: Props) {
       setError(err instanceof Error ? err.message : "Save failed");
     }
   }
+
+  const eyebrow = existing
+    ? mode === "NOTE"
+      ? "Already noted · editing"
+      : "Already logged · editing"
+    : "Today";
 
   return (
     <form
@@ -169,7 +182,7 @@ export function EntryForm({ today, existing, target, boss }: Props) {
             textTransform: "uppercase",
           }}
         >
-          {existingTimed ? "Already logged · editing" : "Today"}
+          {eyebrow}
         </div>
         <h1
           style={{
@@ -189,165 +202,83 @@ export function EntryForm({ today, existing, target, boss }: Props) {
           borderRadius: "var(--radius)",
           boxShadow: "var(--shadow)",
           padding: "24px 24px 26px",
-          border: "1px solid var(--line-soft)",
+          border: mode === "NOTE"
+            ? "1px dashed var(--amber)"
+            : "1px solid var(--line-soft)",
         }}
       >
-        <div style={{ display: "flex", gap: 14 }}>
-          <TimePicker label="Time to gate" value={gate} onChange={setGate} />
+        {mode === "TIMED" ? (
+          <TimedFields
+            gate={gate}
+            setGate={setGate}
+            desk={desk}
+            setDesk={setDesk}
+            dur={dur}
+            deskMin={deskMin}
+            late={late}
+            target={target}
+            mood={mood}
+            setMood={setMood}
+            useReason={useReason}
+            setUseReason={setUseReason}
+            reason={reason}
+            setReason={setReason}
+          />
+        ) : (
+          <NoteFields noteText={noteText} setNoteText={setNoteText} />
+        )}
+      </div>
+
+      {mode === "TIMED" && (
+        <div style={{ marginTop: 18 }}>
           <div
             style={{
               display: "flex",
-              alignItems: "flex-end",
-              paddingBottom: 16,
-              color: "var(--muted)",
-              fontSize: 18,
-            }}
-          >
-            →
-          </div>
-          <TimePicker label="Time to desk" value={desk} onChange={setDesk} />
-        </div>
-
-        <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
-          {dur != null && <Chip tone="neutral">{dur} min gate → desk</Chip>}
-          {deskMin != null &&
-            (late ? (
-              <Chip tone="late">Late · target {fmt(target)}</Chip>
-            ) : (
-              <Chip tone="good">On time</Chip>
-            ))}
-        </div>
-
-        <div style={{ marginTop: 22 }}>
-          <span
-            style={{
-              display: "block",
-              fontSize: 12.5,
-              fontWeight: 600,
-              color: "var(--ink-2)",
-              marginBottom: 9,
-            }}
-          >
-            Energy this morning
-          </span>
-          <div style={{ display: "flex", gap: 7 }}>
-            {MOODS.map((m) => {
-              const on = mood === m.v;
-              return (
-                <button
-                  key={m.v}
-                  type="button"
-                  onClick={() => setMood(m.v)}
-                  style={{
-                    flex: 1,
-                    padding: "10px 4px",
-                    borderRadius: "var(--radius-sm)",
-                    fontSize: 12.5,
-                    fontWeight: 700,
-                    background: on ? m.hue : "var(--surface-2)",
-                    color: on ? "#fff" : "var(--ink-2)",
-                    border: `1.5px solid ${on ? m.hue : "var(--line)"}`,
-                    transition: "all .14s",
-                    transform: on ? "translateY(-2px)" : "none",
-                    boxShadow: on ? "var(--shadow-sm)" : "none",
-                  }}
-                >
-                  {m.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div style={{ marginTop: 20 }}>
-          <label
-            style={{
-              display: "flex",
               alignItems: "center",
-              gap: 9,
-              cursor: "pointer",
-              fontSize: 13.5,
-              fontWeight: 600,
+              justifyContent: "space-between",
+              marginBottom: 8,
+              padding: "0 4px",
             }}
           >
-            <input
-              type="checkbox"
-              checked={useReason}
-              onChange={(e) => setUseReason(e.target.checked)}
-              style={{ width: 17, height: 17, accentColor: "var(--accent)" }}
-            />
-            Add a reason
-          </label>
-          {useReason && (
-            <input
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="e.g. traffic at exit"
+            <span
+              style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)" }}
+            >
+              Your check-in message
+            </span>
+            <button
+              type="button"
+              onClick={copyMessage}
               style={{
-                width: "100%",
-                marginTop: 10,
-                padding: "12px 14px",
-                fontSize: 14,
-                background: "var(--surface-2)",
-                borderRadius: "var(--radius-sm)",
-                border: "1.5px solid var(--line)",
-                outline: "none",
-                color: "var(--ink)",
+                fontSize: 12.5,
+                fontWeight: 700,
+                color: copied ? "var(--good)" : "var(--accent)",
+                display: "flex",
+                alignItems: "center",
+                gap: 5,
               }}
-            />
-          )}
-        </div>
-      </div>
-
-      {/* Live message preview — the note to the boss. */}
-      <div style={{ marginTop: 18 }}>
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 8,
-            padding: "0 4px",
-          }}
-        >
-          <span
-            style={{ fontSize: 12.5, fontWeight: 600, color: "var(--ink-2)" }}
-          >
-            Your check-in message
-          </span>
-          <button
-            type="button"
-            onClick={copyMessage}
-            style={{
-              fontSize: 12.5,
-              fontWeight: 700,
-              color: copied ? "var(--good)" : "var(--accent)",
-              display: "flex",
-              alignItems: "center",
-              gap: 5,
-            }}
-          >
-            {copied ? "✓ Copied" : "Copy"}
-          </button>
-        </div>
-        <div style={{ display: "flex", justifyContent: "flex-end" }}>
-          <div
-            style={{
-              maxWidth: "90%",
-              background: "var(--accent)",
-              color: "#fff",
-              padding: "13px 16px",
-              fontSize: 14,
-              lineHeight: 1.5,
-              borderRadius: "18px 18px 4px 18px",
-              boxShadow: "0 6px 18px -8px var(--accent)",
-              textWrap: "pretty",
-            }}
-          >
-            {message}
+            >
+              {copied ? "✓ Copied" : "Copy"}
+            </button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "flex-end" }}>
+            <div
+              style={{
+                maxWidth: "90%",
+                background: "var(--accent)",
+                color: "#fff",
+                padding: "13px 16px",
+                fontSize: 14,
+                lineHeight: 1.5,
+                borderRadius: "18px 18px 4px 18px",
+                boxShadow: "0 6px 18px -8px var(--accent)",
+                textWrap: "pretty",
+              }}
+            >
+              {message}
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {error && (
         <div
@@ -384,11 +315,221 @@ export function EntryForm({ today, existing, target, boss }: Props) {
           ? "✓ Saved"
           : submitting
             ? "Saving…"
-            : existingTimed
-              ? "Update check-in"
-              : "Save check-in"}
+            : existing
+              ? mode === "NOTE"
+                ? "Update note"
+                : "Update check-in"
+              : mode === "NOTE"
+                ? "Save note"
+                : "Save check-in"}
       </button>
+
+      {!lockedToExisting && (
+        <div style={{ textAlign: "center", marginTop: 14 }}>
+          <button
+            type="button"
+            onClick={() => setMode(mode === "TIMED" ? "NOTE" : "TIMED")}
+            style={{
+              fontSize: 12.5,
+              fontWeight: 600,
+              color: "var(--muted)",
+            }}
+          >
+            {mode === "TIMED"
+              ? "Or log today as a note instead →"
+              : "← Back to a check-in"}
+          </button>
+        </div>
+      )}
     </form>
+  );
+}
+
+type TimedFieldsProps = {
+  gate: string;
+  setGate: (v: string) => void;
+  desk: string;
+  setDesk: (v: string) => void;
+  dur: number | null;
+  deskMin: number | null;
+  late: boolean;
+  target: number;
+  mood: number;
+  setMood: (n: number) => void;
+  useReason: boolean;
+  setUseReason: (b: boolean) => void;
+  reason: string;
+  setReason: (v: string) => void;
+};
+
+function TimedFields({
+  gate, setGate, desk, setDesk,
+  dur, deskMin, late, target,
+  mood, setMood,
+  useReason, setUseReason, reason, setReason,
+}: TimedFieldsProps) {
+  return (
+    <>
+      <div style={{ display: "flex", gap: 14 }}>
+        <TimePicker label="Time to gate" value={gate} onChange={setGate} />
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-end",
+            paddingBottom: 16,
+            color: "var(--muted)",
+            fontSize: 18,
+          }}
+        >
+          →
+        </div>
+        <TimePicker label="Time to desk" value={desk} onChange={setDesk} />
+      </div>
+
+      <div style={{ display: "flex", gap: 9, marginTop: 14, flexWrap: "wrap" }}>
+        {dur != null && <Chip tone="neutral">{dur} min gate → desk</Chip>}
+        {deskMin != null &&
+          (late ? (
+            <Chip tone="late">Late · target {fmt(target)}</Chip>
+          ) : (
+            <Chip tone="good">On time</Chip>
+          ))}
+      </div>
+
+      <div style={{ marginTop: 22 }}>
+        <span
+          style={{
+            display: "block",
+            fontSize: 12.5,
+            fontWeight: 600,
+            color: "var(--ink-2)",
+            marginBottom: 9,
+          }}
+        >
+          Energy this morning
+        </span>
+        <div style={{ display: "flex", gap: 7 }}>
+          {MOODS.map((m) => {
+            const on = mood === m.v;
+            return (
+              <button
+                key={m.v}
+                type="button"
+                onClick={() => setMood(m.v)}
+                style={{
+                  flex: 1,
+                  padding: "10px 4px",
+                  borderRadius: "var(--radius-sm)",
+                  fontSize: 12.5,
+                  fontWeight: 700,
+                  background: on ? m.hue : "var(--surface-2)",
+                  color: on ? "#fff" : "var(--ink-2)",
+                  border: `1.5px solid ${on ? m.hue : "var(--line)"}`,
+                  transition: "all .14s",
+                  transform: on ? "translateY(-2px)" : "none",
+                  boxShadow: on ? "var(--shadow-sm)" : "none",
+                }}
+              >
+                {m.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 20 }}>
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 9,
+            cursor: "pointer",
+            fontSize: 13.5,
+            fontWeight: 600,
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={useReason}
+            onChange={(e) => setUseReason(e.target.checked)}
+            style={{ width: 17, height: 17, accentColor: "var(--accent)" }}
+          />
+          Add a reason
+        </label>
+        {useReason && (
+          <input
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            placeholder="e.g. traffic at exit"
+            style={{
+              width: "100%",
+              marginTop: 10,
+              padding: "12px 14px",
+              fontSize: 14,
+              background: "var(--surface-2)",
+              borderRadius: "var(--radius-sm)",
+              border: "1.5px solid var(--line)",
+              outline: "none",
+              color: "var(--ink)",
+            }}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
+function NoteFields({
+  noteText,
+  setNoteText,
+}: {
+  noteText: string;
+  setNoteText: (v: string) => void;
+}) {
+  return (
+    <div>
+      <span
+        style={{
+          display: "block",
+          fontSize: 12.5,
+          fontWeight: 600,
+          color: "var(--ink-2)",
+          marginBottom: 9,
+        }}
+      >
+        What happened today?
+      </span>
+      <textarea
+        value={noteText}
+        onChange={(e) => setNoteText(e.target.value)}
+        placeholder="e.g. 6:30am team meeting — heading to the office after."
+        rows={5}
+        maxLength={2000}
+        style={{
+          width: "100%",
+          padding: "14px 14px",
+          fontSize: 14.5,
+          fontFamily: "var(--font)",
+          lineHeight: 1.5,
+          color: "var(--ink)",
+          background: "var(--surface-2)",
+          borderRadius: "var(--radius-sm)",
+          border: "1.5px solid var(--line)",
+          outline: "none",
+          resize: "vertical",
+        }}
+      />
+      <div
+        style={{
+          textAlign: "right",
+          marginTop: 6,
+          fontSize: 11.5,
+          color: "var(--muted)",
+        }}
+      >
+        {noteText.length}/2000
+      </div>
+    </div>
   );
 }
 
