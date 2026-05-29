@@ -12,6 +12,11 @@ enum Role {
   ADMIN
 }
 
+enum EntryType {
+  TIMED
+  NOTE
+}
+
 // ---------- Auth.js (NextAuth v5) standard models ----------
 
 model User {
@@ -69,4 +74,25 @@ model AllowedEmail {
   email     String   @unique
   addedBy   String?
   createdAt DateTime @default(now())
+}
+
+// ---------- Time-tracking entries ----------
+//
+// One row per day. `type` discriminates between a TIMED check-in
+// (gate/desk required) and a NOTE (note required). Date is the PK so the
+// "one entry per day" invariant is enforced at the schema level.
+
+model Entry {
+  date      DateTime  @id @db.Date
+  type      EntryType
+  // TIMED fields
+  gate      Int?
+  desk      Int?
+  reason    String?
+  leftHome  Int?
+  mood      Int?
+  // NOTE field
+  note      String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
 }

@@ -56,8 +56,31 @@ check "GET / (public read)"  200 "$BASE/"
 # Login page should render.
 check "GET /login"           200 "$BASE/login"
 
-# Unauth WRITE → 401 JSON. Replace with a real write route once it exists.
-# Example: check "POST /api/entries (unauth)" 401 "$BASE/api/entries"
+# Public read: entries list should be reachable without auth.
+check "GET /api/entries"     200 "$BASE/api/entries"
+
+# Unauth WRITE → 401 JSON. Proves the admin gate.
+post_status=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+  -H 'Content-Type: application/json' \
+  -d '{"date":"2099-01-01","type":"NOTE","note":"smoke"}' \
+  "$BASE/api/entries")
+if [ "$post_status" = "401" ]; then
+  printf "  ✓ %-40s %s\n" "POST /api/entries (unauth)" "$post_status"
+  pass=$((pass + 1))
+else
+  printf "  ✗ %-40s expected 401, got %s\n" "POST /api/entries (unauth)" "$post_status"
+  fail=$((fail + 1))
+fi
+
+delete_status=$(curl -s -o /dev/null -w "%{http_code}" -X DELETE \
+  "$BASE/api/entries/2099-01-01")
+if [ "$delete_status" = "401" ]; then
+  printf "  ✓ %-40s %s\n" "DELETE /api/entries/:date (unauth)" "$delete_status"
+  pass=$((pass + 1))
+else
+  printf "  ✗ %-40s expected 401, got %s\n" "DELETE /api/entries/:date (unauth)" "$delete_status"
+  fail=$((fail + 1))
+fi
 
 echo
 echo "passed: $pass · failed: $fail"
