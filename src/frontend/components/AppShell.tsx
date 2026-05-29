@@ -7,6 +7,7 @@ import {
   NAV_ICON,
   type NavItem,
 } from "./AppSidebar";
+import { ThemeToggle } from "./ThemeToggle";
 
 const ADMIN_NAV: NavItem[] = [
   { href: "/check-in", label: "Check-in", icon: NAV_ICON.checkIn },
@@ -95,10 +96,23 @@ export async function AppShell({ children }: { children: React.ReactNode }) {
     </Link>
   );
 
+  // Theme toggle sits to the right of the auth pill — works in both the
+  // sidebar (stacked) and the mobile top bar (inline).
+  const authSlotWithToggle = (
+    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+      {authPill}
+      <ThemeToggle />
+    </div>
+  );
+
   return (
     <div className="app-root" style={{ display: "flex", minHeight: "100vh" }}>
-      <AppSidebar items={items} authSlot={authPill} publicHint={!isAdmin} />
-      <AppTopBar authSlot={authPill} />
+      <AppSidebar
+        items={items}
+        authSlot={authSlotWithToggle}
+        publicHint={!isAdmin}
+      />
+      <AppTopBar authSlot={authSlotWithToggle} />
       <main
         className="app-main"
         style={{

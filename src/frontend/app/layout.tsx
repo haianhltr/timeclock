@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { QueryProvider } from "@/components/providers/QueryProvider";
 import { getConfig } from "@/lib/api/config";
+import { getTheme } from "@/lib/theme";
 
 export const metadata: Metadata = {
   title: "clockin",
@@ -23,8 +24,13 @@ export default async function RootLayout({
   } catch {
     // use default
   }
+  const theme = await getTheme();
   return (
-    <html lang="en" style={{ ["--accent" as string]: accentHex }}>
+    <html
+      lang="en"
+      data-theme={theme}
+      style={{ ["--accent" as string]: accentHex }}
+    >
       <body>
         <QueryProvider>{children}</QueryProvider>
       </body>
