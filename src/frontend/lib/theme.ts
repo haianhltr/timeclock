@@ -5,7 +5,11 @@ export const THEME_COOKIE = "clockin.theme";
 
 export type Theme = "light" | "dark";
 
-export async function getTheme(): Promise<Theme> {
+// Null when the visitor hasn't picked yet — caller should omit data-theme so
+// the @media (prefers-color-scheme) fallback in globals.css takes over.
+export async function getTheme(): Promise<Theme | null> {
   const v = (await cookies()).get(THEME_COOKIE)?.value;
-  return v === "dark" ? "dark" : "light";
+  if (v === "dark") return "dark";
+  if (v === "light") return "light";
+  return null;
 }
