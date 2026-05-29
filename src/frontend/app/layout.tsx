@@ -28,7 +28,7 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
-      data-theme={theme}
+      data-theme={theme ?? undefined}
       style={{ ["--accent" as string]: accentHex }}
     >
       <body>
