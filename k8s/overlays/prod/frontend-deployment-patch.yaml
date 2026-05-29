@@ -7,10 +7,10 @@ spec:
     spec:
       initContainers:
         - name: prisma-migrate
-          image: ghcr.io/haianhltr/timeclock:8b08e55792ec635f6c6c3e41bc4bd0388b4766f2-migrator
+          image: ghcr.io/haianhltr/timeclock:b5111204c293ad20a45f00e19b101e9a321d30d8-migrator
       containers:
         - name: frontend
-          image: ghcr.io/haianhltr/timeclock:8b08e55792ec635f6c6c3e41bc4bd0388b4766f2
+          image: ghcr.io/haianhltr/timeclock:b5111204c293ad20a45f00e19b101e9a321d30d8
           env:
             - name: NEXTAUTH_URL
               value: "https://clockin.randomstuffs.org"
