@@ -1,0 +1,93 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - key: node-role.kubernetes.io/control-plane
+          operator: Exists
+          effect: NoSchedule
+      imagePullSecrets:
+        - name: ghcr-secret
+      initContainers:
+        - name: prisma-migrate
+          image: ghcr.io/haianhltr/timeclock:placeholder-migrator
+          imagePullPolicy: Always
+          workingDir: /app
+          command:
+            - node
+            - node_modules/prisma/build/index.js
+            - migrate
+            - deploy
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DATABASE_URL
+      containers:
+        - name: frontend
+          image: ghcr.io/haianhltr/timeclock:placeholder
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 3000
+          env:
+            - name: NODE_ENV
+              value: "production"
+            - name: PORT
+              value: "3000"
+            - name: AUTH_TRUST_HOST
+              value: "true"
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: DATABASE_URL
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: google-oauth
+                  key: client-secret
+            - name: NEXTAUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nextauth-secret
+                  key: secret
+            - name: AUTH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: nextauth-secret
+                  key: secret
+            - name: ALLOWED_EMAILS
+              valueFrom:
+                secretKeyRef:
+                  name: auth-config
+                  key: allowed-emails
+            - name: ADMIN_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: auth-config
+                  key: admin-email
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "256Mi"
+              cpu: "200m"

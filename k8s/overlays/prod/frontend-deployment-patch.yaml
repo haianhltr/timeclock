@@ -1,0 +1,16 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: prisma-migrate
+          image: ghcr.io/haianhltr/timeclock:placeholder-migrator
+      containers:
+        - name: frontend
+          image: ghcr.io/haianhltr/timeclock:placeholder
+          env:
+            - name: NEXTAUTH_URL
+              value: "https://clockin.randomstuffs.org"

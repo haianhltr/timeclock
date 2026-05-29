@@ -1,0 +1,23 @@
+# Apply once on the cluster:
+#   sudo kubectl apply -f argocd/applications/prod.yaml
+# Then ArgoCD watches k8s/overlays/prod on main and auto-syncs.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: timeclock
+  namespace: argocd
+spec:
+  destination:
+    namespace: timeclock
+    server: https://kubernetes.default.svc
+  project: default
+  source:
+    path: k8s/overlays/prod
+    repoURL: https://github.com/haianhltr/timeclock.git
+    targetRevision: main
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

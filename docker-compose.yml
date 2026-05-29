@@ -1,0 +1,33 @@
+# Local dev infrastructure. Just Postgres — the Next.js app runs natively
+# via `npm run dev` for hot-reload + fast iteration.
+#
+#   docker compose up -d            # bring up Postgres
+#   docker compose down             # stop (data persists in the volume)
+#   docker compose down -v          # nuke the volume too
+#
+# Port 5435 (not 5432) so this can coexist with other projects:
+#   habit-tracking-1 uses 5434
+#   mindmeister     uses 5433
+#   default system  uses 5432
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: timeclock-postgres
+    restart: unless-stopped
+    ports:
+      - "5435:5432"
+    environment:
+      POSTGRES_USER: timeclock
+      POSTGRES_PASSWORD: t1m3cl0ck-d3v-2026
+      POSTGRES_DB: timeclock
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U timeclock -d timeclock"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
