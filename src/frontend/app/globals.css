@@ -166,3 +166,15 @@ html, body { overflow-x: hidden; }
   .app-bottomnav { display: flex !important; }
   .app-main { width: 100% !important; padding: 24px clamp(14px, 4vw, 24px) calc(96px + env(safe-area-inset-bottom)) !important; }
 }
+
+/* Tighten the gate/desk time inputs on narrow viewports — Chrome's
+ * AM/PM + clock-icon rendering is wider than its 24h equivalent, and the
+ * default 20px mono font + 14px padding overflows two side-by-side inputs
+ * at ~430px. Drop to 16px font + 10px padding to fit cleanly.
+ */
+@container shell (max-width: 520px) {
+  .time-input { font-size: 16px !important; padding: 12px 10px !important; }
+}
+@media (max-width: 520px) {
+  .time-input { font-size: 16px !important; padding: 12px 10px !important; }
+}

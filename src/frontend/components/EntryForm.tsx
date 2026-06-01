@@ -543,7 +543,12 @@ function TimePicker({
   onChange: (v: string) => void;
 }) {
   return (
-    <label style={{ flex: 1, display: "block" }}>
+    <label
+      // minWidth: 0 lets this flex child shrink below the <input type="time">
+      // intrinsic width (Chrome bakes in space for HH:MM + AM/PM + clock icon).
+      // Without it, the input overflows the form card on narrow viewports.
+      style={{ flex: 1, display: "block", minWidth: 0 }}
+    >
       <span
         style={{
           display: "block",
@@ -559,9 +564,10 @@ function TimePicker({
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        className="time-input"
         style={{
           width: "100%",
-          padding: "14px 14px",
+          padding: "14px 12px",
           fontSize: 20,
           fontWeight: 700,
           fontFamily: "var(--mono)",
@@ -571,6 +577,7 @@ function TimePicker({
           border: "1.5px solid var(--line)",
           outline: "none",
           accentColor: "var(--accent)",
+          // Per-instance scaling fallback handled in globals.css for < 520px.
         }}
       />
     </label>
